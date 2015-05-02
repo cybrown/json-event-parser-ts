@@ -1,0 +1,16 @@
+{
+  "name": "jsoneventparser",
+  "version": "0.0.1",
+  "description": "JSON event based parser",
+  "main": "index.js",
+  "scripts": {
+    "postinstall": "tsd reinstall",
+    "test": "mocha js/test"
+  },
+  "author": "Cy Brown",
+  "license": "ISC",
+  "devDependencies": {
+    "mocha": "^2.2.4",
+    "tsd": "^0.5.7"
+  }
+}
