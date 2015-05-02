@@ -32,41 +32,39 @@ export class Parser {
     }
 
     private parseValue(): void {
-        this.check([TokenKind.STRING, TokenKind.CURLY_OPEN, TokenKind.NUMBER, TokenKind.BRACKET_OPEN, TokenKind.BOOLEAN, TokenKind.NULL]);
         switch (this.currentToken.kind) {
             case TokenKind.CURLY_OPEN:
-                this.parseObject();
+                this.parseObjectNoCheck();
                 break;
             case TokenKind.STRING:
-                this.parseString();
+                this.parseStringNoCheck();
                 break;
             case TokenKind.NUMBER:
-                this.parseNumber();
+                this.parseNumberNoCheck();
                 break;
             case TokenKind.BRACKET_OPEN:
-                this.parseArray();
+                this.parseArrayNoCheck();
                 break;
             case TokenKind.BOOLEAN:
-                this.parseBoolean();
+                this.parseBooleanNoCheck();
                 break;
             case TokenKind.NULL:
-                this.parseNull();
+                this.parseNullNoCheck();
                 break;
+            default:
+                this.throwExpected([TokenKind.STRING, TokenKind.CURLY_OPEN, TokenKind.NUMBER, TokenKind.BRACKET_OPEN, TokenKind.BOOLEAN, TokenKind.NULL]);
         }
     }
 
-    private parseNull(): void {
-        this.check(TokenKind.NULL);
+    private parseNullNoCheck(): void {
         this.handler.onNull();
     }
 
-    private parseBoolean(): void {
-        this.check(TokenKind.BOOLEAN);
+    private parseBooleanNoCheck(): void {
         this.handler.onBoolean(this.currentToken.text === 'true' ? true : false);
     }
 
-    private parseObject(): void {
-        this.check(TokenKind.CURLY_OPEN);
+    private parseObjectNoCheck(): void {
         this.handler.onObjectStart();
         do {
             this.pullToken();
@@ -86,8 +84,7 @@ export class Parser {
         } while (true);
     }
 
-    private parseArray(): void {
-        this.check(TokenKind.BRACKET_OPEN);
+    private parseArrayNoCheck(): void {
         this.handler.onArrayStart();
         let index = 0;
         do {
@@ -110,25 +107,27 @@ export class Parser {
         this.handler.onKeyStart(this.convertString(this.currentToken.text));
     }
 
-    private parseString(): void {
-        this.check(TokenKind.STRING);
+    private parseStringNoCheck(): void {
         this.handler.onString(this.convertString(this.currentToken.text));
     }
 
     private convertString(str: string): string {
-        return str.slice(1, -1)
-            .replace(/\\"/g, '"')
-            .replace(/\\\\/g, '\\')
-            .replace(/\\\//g, '\/')
-            .replace(/\\b/g, '\b')
-            .replace(/\\f/g, '\f')
-            .replace(/\\n/g, '\n')
-            .replace(/\\r/g, '\r')
-            .replace(/\\t/g, '\t');
+        str = str.slice(1, -1);
+        if (!/\\/.test(str)) {
+            return str;
+        } else {
+            return str.replace(/\\"/g, '"')
+                      .replace(/\\\\/g, '\\')
+                      .replace(/\\\//g, '\/')
+                      .replace(/\\b/g, '\b')
+                      .replace(/\\f/g, '\f')
+                      .replace(/\\n/g, '\n')
+                      .replace(/\\r/g, '\r')
+                      .replace(/\\t/g, '\t');
+        }
     }
 
-    private parseNumber(): void {
-        this.check(TokenKind.NUMBER);
+    private parseNumberNoCheck(): void {
         this.handler.onNumber(parseFloat(this.currentToken.text));
     }
 
@@ -140,12 +139,7 @@ export class Parser {
     }
 
     private pullToken(): void {
-        const old = this.currentToken;
         this.currentToken = this.scanner.next();
-        if (this.currentToken === null) {
-            console.log(old);
-            throw this.createError('Unexpected end of file');
-        }
     }
 
     private throwExpected(kinds: TokenKind[]): void {

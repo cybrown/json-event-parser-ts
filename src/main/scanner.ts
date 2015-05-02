@@ -1,26 +1,39 @@
 export class Scanner {
 
     private index = 0;
+    private inputLength = 0;
     private tokenStartIndex = 0;
-    private input: string = '';
+    private input = '';
     private startLine = 1;
     private startColumn = 1;
     private currentLine = 1;
     private currentColumn = 1;
+    private currentChar = '';
 
     scan (input: string) {
         this.input = input;
-        this.currentChar = input[0];
+        this.inputLength = input.length;
+        this.reset();
+    }
+    
+    private reset() {
+        this.index = 0;
+        this.tokenStartIndex = 0;
+        this.startLine = 1;
+        this.startColumn = 1;
+        this.currentLine = 1;
+        this.currentColumn = 1;
+        this.currentChar = this.input[0];
     }
 
     next (): Token {
         do {
-            if (this.currentChar === '"') {
+            if (this.isOneCharToken(this.currentChar)) {
+                return this.nextOneCharToken();
+            } else if (this.currentChar === '"') {
                 return this.nextString();
             } else if (this.canStartNumber(this.currentChar)) {
                 return this.nextNumber();
-            } else if (this.isOneCharToken(this.currentChar)) {
-                return this.nextOneCharToken();
             } else if (this.currentChar === 't') {
                 return this.nextTrue();
             } else if (this.currentChar === 'f') {
@@ -30,23 +43,22 @@ export class Scanner {
             } else if (this.isBlank(this.currentChar)) {
                 this.nextChar();
             } else if (this.currentChar === undefined) {
-                break;
+                return this.createToken(TokenKind.END_OF_INPUT);
             } else {
                 this.throwUnexpectedCharacterError();
             }
-        } while (this.hasNext());
-        return this.createToken(TokenKind.END_OF_INPUT);
+        } while (true);
     }
 
     hasNext (): boolean {
-        return this.index < this.input.length;
+        return this.index < this.inputLength;
     }
 
     private nextOneCharToken (): Token {
         this.startNewToken();
-        const currentChart = this.currentChar;
+        const currentChar = this.currentChar;
         this.nextChar();
-        return this.createToken(this.charToTokenKind(currentChart));
+        return this.createToken(this.charToTokenKind(currentChar));
     }
 
     private nextTrue (): Token {
@@ -180,8 +192,6 @@ export class Scanner {
         }[chr] || null;
     }
 
-    private currentChar = '';
-
     private nextChar(): string {
         if (this.currentChar === '\n') {
             this.currentLine++;
@@ -198,19 +208,19 @@ export class Scanner {
     }
 
     private isNumber(chr: string): boolean {
-        return '1234567890'.indexOf(chr) !== -1;
+        return /\d/.test(chr);
     }
 
     private isAlpha(chr: string): boolean {
-        return 'azertyuiopqsdfghjklmwxcvbnAZERTYUIOPQSDFGHJKLMWXCVBN'.indexOf(chr) !== -1;
+        return /[a-zA-Z]/.test(chr);
     }
 
     private isOneCharToken(chr: string): boolean {
-        return '{}[]:,'.indexOf(chr) !== -1;
+        return /[{}[\]:,]/.test(chr);
     }
 
     private isBlank (chr: string): boolean {
-        return ' \t\r\n'.indexOf(chr) !== -1;
+        return /\s/.test(chr);
     }
 
     private throwUnexpectedCharacterError() {
