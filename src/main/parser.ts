@@ -61,14 +61,15 @@ export class Parser {
     }
 
     private parseBooleanNoCheck(): void {
-        this.handler.onBoolean(this.currentToken.text === 'true' ? true : false);
+        this.handler.onBoolean(this.currentToken.text[0] === 't');
     }
 
     private parseObjectNoCheck(): void {
         this.handler.onObjectStart();
         do {
             this.pullToken();
-            this.parseKey();
+            this.check(TokenKind.STRING);
+            this.parseKeyNoCheck();
             const key = this.currentToken.text;
             this.pullToken();
             this.check(TokenKind.COLON);
@@ -76,10 +77,14 @@ export class Parser {
             this.parseValue();
             this.handler.onKeyEnd(key);
             this.pullToken();
-            this.check([TokenKind.CURLY_CLOSE, TokenKind.COMMA]);
-            if (this.currentToken.kind === TokenKind.CURLY_CLOSE) {
-                this.handler.onObjectEnd();
-                return;
+            switch (this.currentToken.kind) {
+                case TokenKind.COMMA:
+                    break;
+                case TokenKind.CURLY_CLOSE:
+                    this.handler.onObjectEnd();
+                    return;
+                default:
+                    this.throwExpected([TokenKind.CURLY_CLOSE, TokenKind.COMMA]);
             }
         } while (true);
     }
@@ -93,17 +98,20 @@ export class Parser {
             this.parseValue();
             this.handler.onIndexEnd(index);
             this.pullToken();
-            this.check([TokenKind.BRACKET_CLOSE, TokenKind.COMMA]);
-            if (this.currentToken.kind === TokenKind.BRACKET_CLOSE) {
-                this.handler.onArrayEnd();
-                return;
+            switch (this.currentToken.kind) {
+                case TokenKind.COMMA:
+                    break;
+                case TokenKind.BRACKET_CLOSE:
+                    this.handler.onArrayEnd();
+                    return;
+                default:
+                    this.throwExpected([TokenKind.BRACKET_CLOSE, TokenKind.COMMA]);
             }
             index++;
         } while (true);
     }
 
-    private parseKey(): void {
-        this.check(TokenKind.STRING);
+    private parseKeyNoCheck(): void {
         this.handler.onKeyStart(this.convertString(this.currentToken.text));
     }
 
@@ -131,10 +139,9 @@ export class Parser {
         this.handler.onNumber(parseFloat(this.currentToken.text));
     }
 
-    private check(expected: TokenKind|TokenKind[]): void {
-        const _expected = <TokenKind[]>(Array.isArray(expected) ? expected : [expected]);
-        if (_expected.indexOf(this.currentToken.kind) === -1) {
-            this.throwExpected(_expected);
+    private check(expected: TokenKind): void {
+        if (expected !== this.currentToken.kind) {
+            this.throwExpected([expected]);
         }
     }
 

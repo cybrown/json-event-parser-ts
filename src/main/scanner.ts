@@ -30,6 +30,8 @@ export class Scanner {
         do {
             if (this.isOneCharToken(this.currentChar)) {
                 return this.nextOneCharToken();
+            } else if (this.isBlank(this.currentChar)) {
+                this.nextChar();
             } else if (this.currentChar === '"') {
                 return this.nextString();
             } else if (this.canStartNumber(this.currentChar)) {
@@ -40,18 +42,12 @@ export class Scanner {
                 return this.nextFalse();
             } else if (this.currentChar === 'n') {
                 return this.nextNull();
-            } else if (this.isBlank(this.currentChar)) {
-                this.nextChar();
             } else if (this.currentChar === undefined) {
                 return this.createToken(TokenKind.END_OF_INPUT);
             } else {
                 this.throwUnexpectedCharacterError();
             }
         } while (true);
-    }
-
-    hasNext (): boolean {
-        return this.index < this.inputLength;
     }
 
     private nextOneCharToken (): Token {
